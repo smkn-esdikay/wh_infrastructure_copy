@@ -1,0 +1,37 @@
+apiVersion: notification.toolkit.fluxcd.io/v1beta2
+kind: Provider
+metadata:
+  name: slack-bot
+  namespace: flux-system
+spec:
+  type: slack
+  secretRef:
+    name: webhook-url
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta2
+kind: Alert
+metadata:
+  name: slack-bot
+  namespace: flux-system
+spec:
+  summary: "flux notification"
+  eventMetadata:
+    env: "production"
+    cluster: "eks-production-us-east-1"
+    region: "us-east-1"
+  providerRef:
+    name: slack-bot
+  eventSeverity: error
+  eventSources:
+    - kind: Kustomization
+      name: "*"
+      namespace: flux-system
+    - kind: HelmRelease
+      name: "*"
+      namespace: monitoring
+    - kind: HelmRepository
+      name: "*"
+      namespace: monitoring
+    - kind: GitRepository
+      name: "*"
+      namespace: production

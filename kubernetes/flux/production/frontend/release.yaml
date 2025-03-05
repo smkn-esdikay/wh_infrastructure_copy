@@ -1,0 +1,66 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: frontend
+  namespace: production
+spec:
+  interval: 1m
+  releaseName: frontend
+  chart:
+    spec:
+      chart: ./kubernetes/flux/production/frontend/chart
+      version: 1.18.11
+      sourceRef:
+        kind: GitRepository
+        name: frontend-chart
+        namespace: flux-system
+  values:
+    name: frontend
+    cluster: eks-production-us-east-1
+    replicaCount: 5
+    labels:
+      app: frontend
+    autoscaling:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 100
+      targetCPUUtilizationPercentage: 80
+    livenessProbe:
+      httpGet:
+        path: /
+        port: http
+    readinessProbe:
+      httpGet:
+        path: /
+        port: http
+    serviceAccount:
+      create: true
+      annotations: {}
+      name: "frontend"
+    podAnnotations: {}
+    podSecurityContext: {}
+    securityContext: {}
+    service:
+      type: NodePort
+      port: 80
+    ingress:
+      enabled: true
+      annotations:
+        kubernetes.io/ingress.class: alb
+        alb.ingress.kubernetes.io/scheme: internet-facing
+        alb.ingress.kubernetes.io/target-type: ip
+        alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:00005:certificate/157f92e5-0f11-4fb5-acf6-87d11b0a8e1c
+        alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+        alb.ingress.kubernetes.io/healthcheck-path: /
+      hosts:
+        - host: frontend.production.pintv.systems
+          paths:
+            - path: /
+    image:
+      repository: 00005.dkr.ecr.us-east-1.amazonaws.com/frontend
+      pullPolicy: Always
+      tag: '0dbec0d8b1e6857a46170e09f5321bb873505749'
+    envFrom:
+      - secretRef:
+          name: frontend-secrets

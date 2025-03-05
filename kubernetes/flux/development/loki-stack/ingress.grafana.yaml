@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: List
+metadata:
+  resourceVersion: ""
+items:
+- apiVersion: networking.k8s.io/v1
+  kind: Ingress
+  metadata:
+    annotations:
+      alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:00004:certificate/662f825a-be2a-44d5-840b-a3ac1984a658
+      alb.ingress.kubernetes.io/healthcheck-path: /
+      alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+      alb.ingress.kubernetes.io/scheme: internet-facing
+      alb.ingress.kubernetes.io/target-type: ip
+      kubernetes.io/ingress.class: alb
+      meta.helm.sh/release-name: monitoring-stack
+      meta.helm.sh/release-namespace: monitoring
+    labels:
+      app: grafana
+      app.kubernetes.io/managed-by: Helm
+      helm.toolkit.fluxcd.io/name: loki-stack
+      helm.toolkit.fluxcd.io/namespace: monitoring
+    name: grafana-ingress
+    namespace: monitoring
+  spec:
+    rules:
+    - host: grafana.development.pintv.systems
+      http:
+        paths:
+        - backend:
+            service:
+              name: monitoring-stack-grafana
+              port:
+                number: 80
+          pathType: ImplementationSpecific

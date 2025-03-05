@@ -1,0 +1,27 @@
+*.py[cod]
+
+*.log
+.idea/
+
+.DS_Store
+Thumbs.db
+
+**/.terraform/*
+openvpn_files
+# .tfstate files
+*.tfstate
+*.tfstate.*
+
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+*tfplan*
+
+.terraformrc
+terraform.rc
+
+**/*decrypted.yaml
+
+kubernetes/flux/development/frontend/age.agekey

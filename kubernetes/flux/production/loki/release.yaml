@@ -1,0 +1,111 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: individual-loki
+  namespace: monitoring
+spec:
+  interval: 5m
+  chart:
+    spec:
+      chart: loki
+      version: "6.12.0"
+      sourceRef:
+        kind: HelmRepository
+        name: grafana-charts
+        namespace: monitoring
+  values:
+    podLogs:
+      apiVersion: monitoring.grafana.com/v1alpha2
+    deploymentMode: 'SingleBinary<->SimpleScalable'
+    chunksCache:
+      allocatedMemory: 1024
+    loki:
+      auth_enabled: false
+      commonConfig:
+        replication_factor: 3
+      schemaConfig:
+        configs:
+        - from: "2024-01-01"
+          store: tsdb
+          index:
+            prefix: loki_index_
+            period: 24h
+          object_store: s3
+          schema: v13
+      storage:
+        bucketNames:
+          admin: pintv-prod-loki-backend
+          chunks: pintv-prod-loki-backend
+          ruler: pintv-prod-loki-backend
+        s3:
+          region: us-east-1
+        type: 's3'
+    singleBinary:
+      replicas: 3
+
+---
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: monitoring-stack
+  namespace: monitoring
+spec:
+  interval: 5m
+  chart:
+    spec:
+      chart: loki-stack
+      version: "2.x"
+      sourceRef:
+        kind: HelmRepository
+        name: grafana-charts
+        namespace: monitoring
+  values:
+    grafana:
+      enabled: true
+      persistence:
+        enabled: true
+        size: 10Gi
+        accessModes:
+          - ReadWriteOnce
+      datasources:
+        datasources.yaml:
+          apiVersion: 1
+          datasources:
+            - name: Loki
+              type: loki
+              url: http://individual-loki-gateway.monitoring.svc.cluster.local/
+              access: proxy
+              isDefault: true
+              jsonData:
+                maxLines: 1000
+      dashboards:
+        default:
+          k8s-storage-volumes-namespace:
+            gnetId: 11455
+            revision: 6
+            datasource: Prometheus
+          kube-state-metrics-v2:
+            gnetId: 13332
+            revision: 12
+            datasource: Prometheus
+          kubernetes-cluster:
+            gnetId: 7249
+            revision: 1
+            datasource: Prometheus
+          kubernetes-cluster-monitoring:
+            gnetId: 315
+            revision: 3
+            datasource: Prometheus
+          kubernetes-nodes:
+            gnetId: 8171
+            revision: 1
+            datasource: Prometheus
+    prometheus:
+      enabled: true
+    promtail:
+      enabled: true
+      config:
+        clients:
+          - url: http://individual-loki-gateway.monitoring.svc.cluster.local/loki/api/v1/push
+    loki:
+      enabled: false
